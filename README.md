@@ -1,155 +1,172 @@
-# Jabrod SDK
+# @jabrod/sdk
 
-Official TypeScript SDK for [Jabrod Cloud API](https://cloud.jabrod.com) - RAG as a Service.
+This repository contains the official JabRod SDK.
+The SDK allows developers to integrate JabRod APIs into their applications.
 
-Build AI-powered applications with knowledge bases in minutes.
+Build AI-powered applications with knowledge bases in minutes. Upload documents, query them with semantic search, and get AI-generated responses.
 
-## Installation
+Supported Platforms
+- JavaScript / TypeScript
+- Additional languages may be added over time
 
 ```bash
-npm install jabrod
+npm install @jabrod/sdk
+# or
+yarn add @jabrod/sdk
+# or
+pnpm add @jabrod/sdk
 ```
 
 ## Quick Start
 
 ```typescript
-import { JabrodClient } from 'jabrod';
+import { Jabrod } from '@jabrod/sdk';
 
 // Initialize the client
-const jabrod = new JabrodClient({
-  apiKey: process.env.JABROD_API_KEY
+const jclient = Jabrod({
+  apiKey: 'jb_your_api_key_here'
 });
 
 // Create a knowledge base
-const kb = await jabrod.kb.create({
+const kb = await jclient.kb.create({
   name: 'My Documents',
   description: 'Product documentation'
 });
 
-// Upload a document
-await jabrod.kb.upload({
+// Upload a document (browser)
+const file = document.querySelector('input[type="file"]').files[0];
+await jclient.kb.uploadFile({
   kbId: kb.id,
-  file: myFile
+  file: file
 });
 
-// Query with RAG (fluent API)
-const result = await jabrod.rag
-  .queryBuilder()
-  .withQuery('What is the refund policy?')
-  .withKnowledgeBase(kb.id)
-  .withTopK(5)
-  .execute();
+// Or upload text content
+await jclient.kb.uploadText({
+  kbId: kb.id,
+  content: 'Your text content here...',
+  name: 'notes.txt'
+});
 
-// Chat with RAG (fluent API)
-const response = await jabrod.rag
-  .chatBuilder()
-  .withMessage('Summarize the key points')
-  .withKnowledgeBase(kb.id)
-  .withModel('gpt-4o-mini')
-  .execute();
+// Chat with the knowledge base
+const response = await jclient.chat.complete({
+  kbId: kb.id,
+  message: 'What is mentioned in my documents?'
+});
 
 console.log(response.message);
+console.log('Sources:', response.sources);
 ```
 
 ## API Reference
 
-### Client
+### Initialization
 
 ```typescript
-const jabrod = new JabrodClient({
-  apiKey: 'jb_xxx',           // Required
-  baseUrl: 'https://...'      // Optional
+import { Jabrod } from '@jabrod/sdk';
+
+const jclient = Jabrod({
+  apiKey: 'jb_xxx',           // Required: Your API key
+  baseUrl: 'https://...'      // Optional: Custom API URL
 });
 ```
 
 ### Knowledge Bases
 
 ```typescript
-// List all
-const kbs = await jabrod.kb.list();
+// List all knowledge bases
+const kbs = await jclient.kb.list();
 
-// Create
-const kb = await jabrod.kb.create({ name: 'My KB' });
-
-// Get
-const kb = await jabrod.kb.get('kb_id');
-
-// Delete
-await jabrod.kb.delete('kb_id');
-
-// Upload file
-await jabrod.kb.upload({ kbId: 'kb_id', file: file });
-
-// Upload text
-await jabrod.kb.uploadText({ kbId: 'kb_id', content: 'text', name: 'file.txt' });
-
-// List documents
-const docs = await jabrod.kb.listDocuments('kb_id');
-```
-
-### RAG - Query (Semantic Search)
-
-```typescript
-// Quick method
-const result = await jabrod.rag.query({
-  kbId: 'kb_id',
-  query: 'What is the refund policy?',
-  topK: 5
+// Create a knowledge base
+const kb = await jclient.kb.create({
+  name: 'My KB',
+  description: 'Optional description'
 });
 
-// Builder pattern (recommended)
-const result = await jabrod.rag
-  .queryBuilder()
-  .withQuery('What is the refund policy?')
-  .withKnowledgeBase('kb_id')
-  .withTopK(5)
-  .execute();
+// Get a specific knowledge base
+const kb = await jclient.kb.get('kb-id');
+
+// Delete a knowledge base
+await jclient.kb.delete('kb-id');
+
+// List documents in a knowledge base
+const docs = await jclient.kb.listDocuments('kb-id');
+
+// Upload a file
+await jclient.kb.uploadFile({
+  kbId: 'kb-id',
+  file: fileOrBlob,
+  filename: 'document.pdf'
+});
+
+// Upload text content
+await jclient.kb.uploadText({
+  kbId: 'kb-id',
+  content: 'Your text here',
+  name: 'notes.txt'
+});
 ```
 
-### RAG - Chat
+### Query (Semantic Search)
 
 ```typescript
-// Quick method
-const result = await jabrod.rag.chat({
-  kbId: 'kb_id',
+// Query for relevant chunks without LLM processing
+const results = await jclient.chat.query({
+  kbId: 'kb-id',
+  query: 'What is the return policy?',
+  topK: 5  // Optional: Number of results (default: 5)
+});
+
+console.log(results.chunks);
+// [{ content: '...', score: 0.95, documentId: '...' }, ...]
+```
+
+### Chat (RAG)
+
+```typescript
+// Get AI-generated response based on KB content
+const response = await jclient.chat.complete({
+  kbId: 'kb-id',
   message: 'Summarize the key points',
-  model: 'gpt-4o-mini'
+  model: 'mistralai/mistral-small-3.1-24b-instruct:free',  // Optional
+  systemPrompt: 'You are a helpful assistant.',  // Optional
+  topK: 5  // Optional: Number of context chunks
 });
 
-// Builder pattern (recommended)
-const result = await jabrod.rag
-  .chatBuilder()
-  .withMessage('Summarize the key points')
-  .withKnowledgeBase('kb_id')
-  .withModel('gpt-4o-mini')
-  .withSystemPrompt('You are a helpful assistant.')
-  .withTopK(5)
-  .execute();
+console.log(response.message);
+console.log(response.sources);  // Relevant document chunks
+console.log(response.usage);    // Token usage
 ```
 
-### Usage
+### Usage Statistics
 
 ```typescript
-const usage = await jabrod.usage.get();
+// Get usage for current billing period
+const usage = await jclient.usage.get();
+
+console.log(usage.queries);
+console.log(usage.tokensUsed);
+console.log(usage.limits);
 ```
 
 ## Error Handling
 
 ```typescript
-import { JabrodClient, JabrodError } from 'jabrod';
+import { Jabrod, JabrodError } from '@jabrod/sdk';
 
 try {
-  const result = await jabrod.rag.query({ ... });
+  const response = await jclient.chat.complete({ ... });
 } catch (error) {
   if (error instanceof JabrodError) {
-    console.log(error.code);    // 'INVALID_API_KEY', etc.
-    console.log(error.message);
-    console.log(error.status);
+    console.log(error.code);    // 'INVALID_API_KEY', 'NOT_FOUND', etc.
+    console.log(error.message); // Human-readable message
+    console.log(error.status);  // HTTP status code
   }
 }
 ```
 
-## TypeScript
+## TypeScript Support
+
+Full TypeScript support with exported types:
 
 ```typescript
 import type {
@@ -158,8 +175,20 @@ import type {
   ChatResult,
   QueryResult,
   UsageStats
-} from 'jabrod';
+} from '@jabrod/sdk';
 ```
+
+## Get Your API Key
+
+1. Sign up at [agent.jabrod.com](https://agent.jabrod.com)
+2. Go to Dashboard > API Keys
+3. Click "Create Key"
+4. Copy your key (starts with `jb_`)
+
+## Support
+
+- Documentation: [docs.jabrod.com](https://docs.jabrod.com)
+- Issues: [GitHub Issues](https://github.com/jabrod/sdk/issues)
 
 ## License
 
