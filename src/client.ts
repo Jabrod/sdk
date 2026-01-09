@@ -4,6 +4,7 @@
 
 import { ApiResponse, JabrodError } from './types.js';
 
+
 export interface ClientConfig {
     apiKey: string;
     baseUrl: string;

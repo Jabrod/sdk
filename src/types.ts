@@ -1,21 +1,28 @@
 /**
- * Type definitions for Jabrod SDK
+ * Jabrod SDK Types
  */
 
-// API Configuration
+// ============================================
+// Configuration
+// ============================================
+
 export interface JabrodConfig {
+    /** API key (starts with jb_) */
     apiKey: string;
+    /** Base URL for API (default: https://cloud.jabrod.com) */
     baseUrl?: string;
 }
 
+// ============================================
 // Knowledge Base
+// ============================================
+
 export interface KnowledgeBase {
     id: string;
     name: string;
-    description: string | null;
+    description?: string;
     status: 'active' | 'processing' | 'error' | 'archived';
     documentCount: number;
-    totalSize: number;
     vectorCount: number;
     createdAt: string;
     updatedAt: string;
@@ -26,19 +33,21 @@ export interface CreateKBOptions {
     description?: string;
 }
 
-// Document
+// ============================================
+// Documents
+// ============================================
+
 export interface Document {
     id: string;
-    knowledgeBaseId: string;
     name: string;
-    type: 'file' | 'link' | 'text';
-    mimeType: string | null;
+    type: string;
+    mimeType?: string;
     size: number;
     status: 'pending' | 'processing' | 'completed' | 'failed';
-    chunkCount: number;
-    errorMessage: string | null;
+    chunkCount?: number;
+    errorMessage?: string;
     createdAt: string;
-    processedAt: string | null;
+    processedAt?: string;
 }
 
 export interface UploadFileOptions {
@@ -53,50 +62,73 @@ export interface UploadTextOptions {
     name?: string;
 }
 
-// Query
+// ============================================
+// RAG - Query
+// ============================================
+
 export interface QueryOptions {
+    /** Knowledge base ID */
     kbId: string;
+    /** Search query */
     query: string;
+    /** Number of results (1-20, default: 5) */
     topK?: number;
 }
 
 export interface QueryResult {
-    chunks: {
-        content: string;
-        score: number;
-        documentId: string;
-        metadata?: Record<string, unknown>;
-    }[];
+    chunks: QueryChunk[];
     query: string;
     latencyMs: number;
 }
 
-// Chat
+export interface QueryChunk {
+    content: string;
+    score: number;
+    documentId: string;
+    metadata?: Record<string, unknown>;
+}
+
+// ============================================
+// RAG - Chat
+// ============================================
+
 export interface ChatOptions {
+    /** Knowledge base ID */
     kbId: string;
+    /** User message */
     message: string;
+    /** LLM model (default: mistralai/mistral-small-3.1-24b-instruct:free) */
     model?: string;
+    /** Custom system prompt */
     systemPrompt?: string;
+    /** Number of context chunks (1-10, default: 5) */
     topK?: number;
 }
 
 export interface ChatResult {
     message: string;
-    sources: {
-        documentId: string;
-        content: string;
-        score: number;
-    }[];
+    sources: ChatSource[];
     model: string;
     latencyMs: number;
-    usage?: {
-        promptTokens: number;
-        completionTokens: number;
-        totalTokens: number;
-    };
+    usage?: TokenUsage;
 }
 
+export interface ChatSource {
+    documentId: string;
+    content: string;
+    score: number;
+}
+
+export interface TokenUsage {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+}
+
+// ============================================
 // Usage
+// ============================================
+
 export interface UsageStats {
     period: {
         start: string;
@@ -115,24 +147,40 @@ export interface UsageStats {
     };
 }
 
+// ============================================
 // API Response
+// ============================================
+
 export interface ApiResponse<T> {
     success: boolean;
     data?: T;
-    error?: {
-        code: string;
-        message: string;
-        details?: unknown;
-    };
+    error?: ApiError;
 }
 
-// Error
-export class JabrodError extends Error {
+export interface ApiError {
     code: string;
-    status: number;
-    details?: unknown;
+    message: string;
+    details?: Record<string, unknown>;
+}
 
-    constructor(code: string, message: string, status: number = 400, details?: unknown) {
+// ============================================
+// Error Class
+// ============================================
+
+/**
+ * Custom error class for Jabrod API errors
+ */
+export class JabrodError extends Error {
+    public readonly code: string;
+    public readonly status: number;
+    public readonly details?: Record<string, unknown>;
+
+    constructor(
+        code: string,
+        message: string,
+        status: number,
+        details?: Record<string, unknown>
+    ) {
         super(message);
         this.name = 'JabrodError';
         this.code = code;

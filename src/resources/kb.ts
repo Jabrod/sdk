@@ -20,6 +20,11 @@ export class KBResource {
 
     /**
      * List all knowledge bases
+     *
+     * @example
+     * ```typescript
+     * const kbs = await jabrod.kb.list();
+     * ```
      */
     async list(): Promise<KnowledgeBase[]> {
         return this.client.get<KnowledgeBase[]>('/v1/kb');
@@ -27,6 +32,14 @@ export class KBResource {
 
     /**
      * Create a new knowledge base
+     *
+     * @example
+     * ```typescript
+     * const kb = await jabrod.kb.create({
+     *   name: 'Product Docs',
+     *   description: 'Product documentation'
+     * });
+     * ```
      */
     async create(options: CreateKBOptions): Promise<KnowledgeBase> {
         return this.client.post<KnowledgeBase>('/v1/kb', options);
@@ -34,6 +47,11 @@ export class KBResource {
 
     /**
      * Get a knowledge base by ID
+     *
+     * @example
+     * ```typescript
+     * const kb = await jabrod.kb.get('kb_123');
+     * ```
      */
     async get(kbId: string): Promise<KnowledgeBase> {
         return this.client.get<KnowledgeBase>(`/v1/kb/${kbId}`);
@@ -41,6 +59,11 @@ export class KBResource {
 
     /**
      * Delete a knowledge base
+     *
+     * @example
+     * ```typescript
+     * await jabrod.kb.delete('kb_123');
+     * ```
      */
     async delete(kbId: string): Promise<void> {
         await this.client.delete(`/v1/kb/${kbId}`);
@@ -48,6 +71,11 @@ export class KBResource {
 
     /**
      * List documents in a knowledge base
+     *
+     * @example
+     * ```typescript
+     * const docs = await jabrod.kb.listDocuments('kb_123');
+     * ```
      */
     async listDocuments(kbId: string): Promise<Document[]> {
         return this.client.get<Document[]>(`/v1/kb/${kbId}/documents`);
@@ -55,8 +83,16 @@ export class KBResource {
 
     /**
      * Upload a file to a knowledge base
+     *
+     * @example
+     * ```typescript
+     * await jabrod.kb.upload({
+     *   kbId: 'kb_123',
+     *   file: fileInput.files[0]
+     * });
+     * ```
      */
-    async uploadFile(options: UploadFileOptions): Promise<Document> {
+    async upload(options: UploadFileOptions): Promise<Document> {
         const formData = new FormData();
 
         if (options.file instanceof File) {
@@ -70,6 +106,15 @@ export class KBResource {
 
     /**
      * Upload text content to a knowledge base
+     *
+     * @example
+     * ```typescript
+     * await jabrod.kb.uploadText({
+     *   kbId: 'kb_123',
+     *   content: 'Your text content...',
+     *   name: 'notes.txt'
+     * });
+     * ```
      */
     async uploadText(options: UploadTextOptions): Promise<Document> {
         const blob = new Blob([options.content], { type: 'text/plain' });

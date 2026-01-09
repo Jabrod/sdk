@@ -3,59 +3,71 @@
  *
  * @example
  * ```typescript
- * import { Jabrod } from '@jabrod/sdk';
+ * import { JabrodClient } from 'jabrod';
  *
- * const jclient = Jabrod({ apiKey: 'jb_xxx' });
+ * const jabrod = new JabrodClient({
+ *   apiKey: process.env.JABROD_API_KEY
+ * });
  *
  * // Create a knowledge base
- * const kb = await jclient.kb.create({ name: 'My KB' });
+ * const kb = await jabrod.kb.create({ name: 'My KB' });
  *
  * // Upload a document
- * await jclient.kb.uploadFile({ kbId: kb.id, file: myFile });
+ * await jabrod.kb.upload({ kbId: kb.id, file: myFile });
  *
- * // Chat with the KB
- * const response = await jclient.chat.complete({
- *   kbId: kb.id,
- *   message: 'What is in my documents?'
- * });
+ * // Query with RAG
+ * const response = await jabrod.rag
+ *   .queryBuilder()
+ *   .withQuery('What is in my documents?')
+ *   .withKnowledgeBase(kb.id)
+ *   .withTopK(5)
+ *   .execute();
  * ```
  */
 import { HttpClient } from './client.js';
 import { KBResource } from './resources/kb.js';
-import { ChatResource } from './resources/chat.js';
+import { RAGResource } from './resources/rag.js';
 import { UsageResource } from './resources/usage.js';
 // Re-export types
 export * from './types.js';
+// Re-export error class
+export { JabrodError } from './types.js';
 // Default API base URL
 const DEFAULT_BASE_URL = 'https://cloud.jabrod.com';
 /**
- * Create a new Jabrod SDK client
- *
- * @param config - Configuration options
- * @returns Jabrod client instance
+ * JabrodClient - Main SDK Entry Point
  *
  * @example
  * ```typescript
- * const jclient = Jabrod({ apiKey: 'jb_xxx' });
+ * const jabrod = new JabrodClient({
+ *   apiKey: process.env.JABROD_API_KEY
+ * });
  * ```
  */
-export function Jabrod(config) {
-    if (!config.apiKey) {
-        throw new Error('API key is required. Get one at https://agent.jabrod.com/dashboard');
+export class JabrodClient {
+    /** Knowledge Base operations */
+    kb;
+    /** RAG operations (query & chat) */
+    rag;
+    /** Usage statistics */
+    usage;
+    httpClient;
+    constructor(config) {
+        if (!config.apiKey) {
+            throw new Error('API key is required. Get one at https://agent.jabrod.com/dashboard');
+        }
+        if (!config.apiKey.startsWith('jb_')) {
+            throw new Error('Invalid API key format. Keys should start with "jb_"');
+        }
+        this.httpClient = new HttpClient({
+            apiKey: config.apiKey,
+            baseUrl: config.baseUrl || DEFAULT_BASE_URL,
+        });
+        this.kb = new KBResource(this.httpClient);
+        this.rag = new RAGResource(this.httpClient);
+        this.usage = new UsageResource(this.httpClient);
     }
-    if (!config.apiKey.startsWith('jb_')) {
-        throw new Error('Invalid API key format. Keys should start with "jb_"');
-    }
-    const httpClient = new HttpClient({
-        apiKey: config.apiKey,
-        baseUrl: config.baseUrl || DEFAULT_BASE_URL,
-    });
-    return {
-        kb: new KBResource(httpClient),
-        chat: new ChatResource(httpClient),
-        usage: new UsageResource(httpClient),
-    };
 }
 // Default export
-export default Jabrod;
+export default JabrodClient;
 //# sourceMappingURL=index.js.map
